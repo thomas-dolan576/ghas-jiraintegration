@@ -14,8 +14,8 @@ fixtures/sample_alerts.json             # test alerts for workflow_dispatch
 
 ## How it triggers
 
-- `code_scanning_alert` (types: `created`, `reopened`, `appeared_in_branch`) — fires only for alerts on the **default branch**, which is exactly "a vuln was merged to production."
-- `workflow_dispatch` — manual test runs against `fixtures/sample_alerts.json`.
+- `workflow_run` — fires after the **CodeQL** workflow completes on `main` (i.e. new code was merged and scanned). The script then pulls all `state=open` code scanning alerts from the API; label-based JQL dedup means only un-ticketed alerts become stories, so re-runs are idempotent and pre-existing alerts get backfilled. Note: `code_scanning_alert` is a webhook event only, **not** a valid Actions trigger — that's why the workflow_run pattern is used. The `workflows: ["CodeQL"]` name must match your CodeQL workflow's `name:`.
+- `workflow_dispatch` — manual test runs against `fixtures/sample_alerts.json` (or leave fixture empty to pull real alerts from the API).
 
 ## Verified against the live VULN project (2026-07-16)
 

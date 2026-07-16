@@ -46,15 +46,14 @@ SEVERITY_ORDER = ["critical", "high", "medium", "low", "warning", "note", "error
 
 
 def load_alerts():
-    """Yield (alert, repo_full_name) from the GitHub event or a fixture file."""
-    fixture = os.environ.get("ALERT_FIXTURE", "")
-    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
-    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+    """Yield (alert, repo_full_name) from a fixture file or the GitHub API.
 
-    if event_name == "code_scanning_alert" and event_path:
-        event = json.loads(Path(event_path).read_text())
-        yield event["alert"], event["repository"]["full_name"]
-        return
+    Fixture takes precedence (workflow_dispatch test mode). Otherwise pull all
+    open code scanning alerts for this repo — JQL dedup keeps re-runs
+    idempotent, so processing the full open set is safe and also backfills
+    alerts that predate this integration.
+    """
+    fixture = os.environ.get("ALERT_FIXTURE", "")
 
     if fixture and Path(fixture).exists():
         data = json.loads(Path(fixture).read_text())
@@ -62,8 +61,36 @@ def load_alerts():
             yield item["alert"], item["repository"]["full_name"]
         return
 
-    print("::error::No code_scanning_alert event and no fixture found. Nothing to do.")
-    sys.exit(1)
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if not (repo and token):
+        print("::error::No fixture found and GITHUB_TOKEN/GITHUB_REPOSITORY not set. Nothing to do.")
+        sys.exit(1)
+
+    page = 1
+    while True:
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{repo}/code-scanning/alerts"
+            f"?state=open&per_page=100&page={page}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                alerts = json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            # 403/404 here usually means Advanced Security / code scanning
+            # is disabled for this repo, or no analyses have run yet.
+            print(f"::error::Code scanning alerts API -> {e.code}: {e.read().decode()[:300]}")
+            sys.exit(1)
+        for alert in alerts:
+            yield alert, repo
+        if len(alerts) < 100:
+            return
+        page += 1
 
 
 def severity_of(alert):
