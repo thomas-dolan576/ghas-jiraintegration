@@ -15,8 +15,13 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      source:
+        description: "Alert source (empty dispatch inputs fall back to defaults, so this is an explicit switch)"
+        type: choice
+        options: [fixture, api]
+        default: fixture
       fixture:
-        description: "Path to alert fixture JSON (test mode; empty = pull real alerts from API)"
+        description: "Path to alert fixture JSON (used when source=fixture)"
         required: false
         default: "ghas-jiraintegration/fixtures/sample_alerts.json"
       dry_run:
@@ -66,7 +71,8 @@ jobs:
           # Optional — Slack incoming webhook; step is a no-op without it
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-          ALERT_FIXTURE: ${{ inputs.fixture }}
+          # fixture only when explicitly chosen; workflow_run always uses the API
+          ALERT_FIXTURE: ${{ inputs.source == 'fixture' && inputs.fixture || '' }}
         run: python ghas-jiraintegration/scripts/create_vuln_stories.py
 
       - name: Upload payload artifact (dry-run evidence)

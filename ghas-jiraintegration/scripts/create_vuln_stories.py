@@ -82,8 +82,13 @@ def load_alerts():
             with urllib.request.urlopen(req, timeout=30) as resp:
                 alerts = json.loads(resp.read())
         except urllib.error.HTTPError as e:
-            # 403/404 here usually means Advanced Security / code scanning
-            # is disabled for this repo, or no analyses have run yet.
+            if e.code in (403, 404):
+                # Advanced Security / code scanning disabled, or no analyses
+                # yet. Not a failure — 126 org repos have GHAS disabled and
+                # must not red-x this workflow. Warn and exit clean.
+                print(f"::warning::Code scanning not available for {repo} "
+                      f"(HTTP {e.code}). No alerts to process — exiting clean.")
+                return
             print(f"::error::Code scanning alerts API -> {e.code}: {e.read().decode()[:300]}")
             sys.exit(1)
         for alert in alerts:
@@ -299,9 +304,17 @@ def write_summary(rows):
 
 
 def main():
-    if not DRY_RUN and not (JIRA_BASE_URL and JIRA_EMAIL and JIRA_API_TOKEN):
+    has_creds = bool(JIRA_BASE_URL and JIRA_EMAIL and JIRA_API_TOKEN)
+    if not DRY_RUN and not has_creds:
         print("::error::DRY_RUN=false but Jira credentials are missing.")
         sys.exit(1)
+
+    # Dry-run credential validation: read-only, proves the (service) account
+    # can auth and search VULN without creating anything.
+    if DRY_RUN and has_creds:
+        me = jira_request("GET", "/rest/api/3/myself")
+        print(f"[dry-run] Jira auth OK as: {me.get('displayName')} "
+              f"({me.get('emailAddress', 'hidden')}, account {me.get('accountId', '?')[:12]}…)")
 
     PAYLOAD_DIR.mkdir(exist_ok=True)
     rows = []
@@ -316,8 +329,12 @@ def main():
         out.write_text(json.dumps(payload, indent=2))
 
         if DRY_RUN:
+            dedup_note = ""
+            if has_creds:  # read-only JQL check — validates dedup query too
+                existing = find_existing(label)
+                dedup_note = f", would skip (duplicate of {existing})" if existing else ", no duplicate found"
             print(f"[dry-run] would create issue:\n{json.dumps(payload, indent=2)}")
-            rows.append(f"| {repo} | {sev} | {rule_id} | dry-run: payload saved to `{out}` |")
+            rows.append(f"| {repo} | {sev} | {rule_id} | dry-run: payload saved to `{out}`{dedup_note} |")
             slack_notify(None, alert, repo)
             continue
 
