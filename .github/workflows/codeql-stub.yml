@@ -4,8 +4,6 @@ name: "CodeQL"
 # workflow_run trigger chain in vuln-jira-story.yml. Delete when copying
 # the integration into a repo that has real CodeQL.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 jobs:
   scan:
