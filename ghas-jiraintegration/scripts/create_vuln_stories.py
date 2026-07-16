@@ -32,9 +32,11 @@ from pathlib import Path
 # --------------------------------------------------------------------------- config
 
 DRY_RUN = os.environ.get("DRY_RUN", "true").strip().lower() != "false"
-JIRA_BASE_URL = os.environ.get("JIRA_BASE_URL", "").rstrip("/")
-JIRA_EMAIL = os.environ.get("JIRA_EMAIL", "")
-JIRA_API_TOKEN = os.environ.get("JIRA_API_TOKEN", "")
+# .strip() everywhere: secrets pasted via `gh secret set` frequently carry a
+# trailing newline, which silently corrupts the Basic auth header -> 401.
+JIRA_BASE_URL = os.environ.get("JIRA_BASE_URL", "").strip().rstrip("/")
+JIRA_EMAIL = os.environ.get("JIRA_EMAIL", "").strip()
+JIRA_API_TOKEN = os.environ.get("JIRA_API_TOKEN", "").strip()
 PROJECT_KEY = os.environ.get("JIRA_PROJECT_KEY", "VULN")
 ISSUE_TYPE_ID = os.environ.get("JIRA_ISSUE_TYPE_ID", "17745")  # Story in VULN
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
@@ -236,6 +238,12 @@ def jira_request(method, api_path, body=None):
             return json.loads(resp.read() or b"{}")
     except urllib.error.HTTPError as e:
         print(f"::error::Jira {method} {api_path} -> {e.code}: {e.read().decode()[:500]}")
+        if e.code == 401:
+            print("::error::401 troubleshooting: (1) JIRA_EMAIL must be the exact "
+                  "email of the account that OWNS the API token; (2) re-create the "
+                  "token at id.atlassian.com/manage-profile/security/api-tokens and "
+                  "re-set the secret; (3) ensure no quotes/whitespace were pasted "
+                  "into the secret value.")
         raise
 
 
