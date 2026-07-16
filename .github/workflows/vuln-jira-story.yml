@@ -72,6 +72,9 @@ jobs:
           # Optional — Slack incoming webhook; step is a no-op without it
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+          # Safety cap per run (0/unset = unlimited)
+          MAX_ISSUES: ${{ vars.MAX_ISSUES || '0' }}
+
           # fixture only when explicitly chosen; workflow_run always uses the API
           ALERT_FIXTURE: ${{ inputs.source == 'fixture' && inputs.fixture || '' }}
         run: python ghas-jiraintegration/scripts/create_vuln_stories.py

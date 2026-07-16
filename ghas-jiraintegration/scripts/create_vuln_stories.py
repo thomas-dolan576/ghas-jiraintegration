@@ -38,6 +38,9 @@ JIRA_API_TOKEN = os.environ.get("JIRA_API_TOKEN", "")
 PROJECT_KEY = os.environ.get("JIRA_PROJECT_KEY", "VULN")
 ISSUE_TYPE_ID = os.environ.get("JIRA_ISSUE_TYPE_ID", "17745")  # Story in VULN
 SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
+# Safety cap: max alerts processed per run (0 = unlimited). Prevents a noisy
+# repo (e.g. first backfill) from flooding the VULN board in one run.
+MAX_ISSUES = int(os.environ.get("MAX_ISSUES", "0") or "0")
 PAYLOAD_DIR = Path("jira-payloads")
 
 SEVERITY_ORDER = ["critical", "high", "medium", "low", "warning", "note", "error"]
@@ -324,8 +327,14 @@ def main():
 
     PAYLOAD_DIR.mkdir(exist_ok=True)
     rows = []
+    processed = 0
 
     for alert, repo in load_alerts():
+        if MAX_ISSUES and processed >= MAX_ISSUES:
+            rows.append(f"| — | — | — | MAX_ISSUES={MAX_ISSUES} reached; remaining alerts deferred to next run |")
+            print(f"::warning::MAX_ISSUES={MAX_ISSUES} reached — remaining alerts deferred (dedup makes next runs pick them up).")
+            break
+        processed += 1
         payload = build_payload(alert, repo)
         sev = severity_of(alert)
         rule_id = alert.get("rule", {}).get("id", "?")

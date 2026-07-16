@@ -1,0 +1,441 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="mb-3">
+        <i class="bi bi-bank text-primary"></i> Direct Deposit & Pay
+      </h2>
+      <p class="text-muted">Manage your direct deposit accounts and payment settings</p>
+    </div>
+  </div>
+
+  <!-- Alert Messages -->
+  <div class="row">
+    <div class="col-12">
+      <div id="success" style="display: none;" class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
+          <div>
+            <h5 class="alert-heading mb-1">Success!</h5>
+            <p class="mb-0">Information successfully updated.</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+      <div id="failure" style="display: none;" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem;"></i>
+          <div>
+            <h5 class="alert-heading mb-1">Error!</h5>
+            <p class="mb-0">Failed to update. Please try again.</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left Column - Forms -->
+    <div class="col-lg-5">
+      <!-- Add Direct Deposit Form -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0">
+            <i class="bi bi-plus-circle text-success me-2"></i>Add Direct Deposit
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <%= form_tag "#", { class: "needs-validation", id: "bank_info_form" } do %>
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-bank2 text-success me-2"></i>Bank Account Number
+              </label>
+              <%= text_field_tag :bank_account_num, params[:bank_account_num], {
+                placeholder: "Enter account number",
+                class: "form-control form-control-lg"
+              } %>
+              <small class="text-muted">Your bank account number</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-diagram-3 text-success me-2"></i>Bank Routing Number
+              </label>
+              <%= text_field_tag :bank_routing_num, params[:bank_routing_num], {
+                placeholder: "9-digit routing number",
+                class: "form-control form-control-lg"
+              } %>
+              <small class="text-muted">Usually found at the bottom of checks</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-percent text-success me-2"></i>Percentage of Deposit
+              </label>
+              <%= text_field_tag :dd_percent, params[:dd_percent], {
+                placeholder: "e.g., 100",
+                class: "form-control form-control-lg"
+              } %>
+              <small class="text-muted">What percentage to deposit (1-100)</small>
+            </div>
+
+            <div class="d-grid">
+              <%= submit_tag "Add Account", {
+                id: "dd_form_btn",
+                class: "btn btn-success btn-lg"
+              } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Decrypt Form -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h5 class="mb-0">
+            <i class="bi bi-unlock text-warning me-2"></i>Decrypt Account
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <%= form_tag "#", { class: "needs-validation", id: "decrypt_form" } do %>
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-key-fill text-warning me-2"></i>Encrypted Account Number
+              </label>
+              <%= text_field_tag :value_to_decrypt, params[:value_to_decrypt], {
+                placeholder: "Paste encrypted value",
+                class: "form-control form-control-lg"
+              } %>
+              <small class="text-muted">Copy from the table to the right</small>
+            </div>
+
+            <div class="d-grid">
+              <%= submit_tag "Decrypt", {
+                id: "decrypt_btn",
+                class: "btn btn-warning btn-lg"
+              } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column - Accounts Table -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+              <i class="bi bi-list-ul text-primary me-2"></i>Your Accounts
+            </h5>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="encrypted_acct_question">
+              <i class="bi bi-question-circle me-1"></i> Why Encrypted?
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="data_table">
+              <thead class="table-light">
+                <tr>
+                  <th>Account Number</th>
+                  <th>Routing Number</th>
+                  <th>Deposit %</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- DataTable will populate this -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%= javascript_include_tag "jquery.dataTables.min.js" %>
+
+<script type="text/javascript">
+
+/*
+  buildDeleteLink accepts a direct deposit ID and builds a link that enables
+  a user to delete that direct deposit entry
+*/
+function buildDeleteLink(dd_id){
+  var link = '<a href="/users/' + '<%= current_user.id %>' + '/pay/'+ dd_id + '" data-method="delete" rel="nofollow" class="btn btn-sm btn-outline-danger delete-row">' +
+                              '<i class="bi bi-trash"></i> Delete</a>'
+  return link
+};
+
+/*
+  parseDirectDepositInfo accepts the response object and parses the JSON response, then
+  populates the direct deposit data table.
+*/
+function parseDirectDepostInfo(response){
+  var msg = jQuery.parseJSON(JSON.stringify(response));
+  var table = $('#data_table').DataTable();
+
+   $.each(msg.user, function(index, val){
+    table.row.add( [
+        '<code class="text-monospace">' + val.bank_account_num + '</code>',
+        '<span class="badge bg-light text-dark">' + val.bank_routing_num + '</span>',
+        '<span class="badge bg-success">' + val.percent_of_deposit + '%</span>',
+        buildDeleteLink(val.id)
+    ] );
+  });
+
+  table.draw();
+};
+
+/*
+  createDataTable initializes the dd table as a datatable
+*/
+function createDataTable(){
+  // Check if DataTable is already initialized
+  if ($.fn.DataTable.isDataTable('#data_table')) {
+    $('#data_table').DataTable().destroy();
+  }
+
+  $('#data_table').DataTable({
+      "sPaginationType": "full_numbers",
+      "language": {
+        "emptyTable": "No direct deposit accounts configured yet"
+      },
+      "autoWidth": false,
+      "searching": true,
+      "ordering": true,
+      "columns": [
+        { "title": "Account Number" },
+        { "title": "Routing Number" },
+        { "title": "Deposit %" },
+        { "title": "Actions", "orderable": false }
+      ]
+    });
+};
+
+/*
+  populateTable will first clear the existing dd table, then call the appropriate
+  endpoint to retrieve direct deposit entries and finally, provide parseDirectDepositInfo
+  with the response from the endpoint in order to populate the data table.
+*/
+function populateTable() {
+  var table = $('#data_table').DataTable();
+  table.clear();
+
+  $.ajax({
+      url: <%= sanitize(user_pay_path(:format => "json", user_id: current_user.id, id: current_user.id).inspect) %>,
+    type: "GET",
+    success: function(response) {
+    parseDirectDepostInfo(response);
+    },
+    error: function(event) {
+    $('#failure').show(500).delay(1500).fadeOut();
+    }
+  });
+};
+
+/*
+  This function doesn't really work right now but is supposed to offer the user a
+  "delete confirmation" message
+*/
+$(document).on('click', '.delete-row', function (e) {
+  var conf = confirm('Are you sure you want to delete this account?');
+  if (!conf) {
+    e.preventDefault();
+    return false;
+  }
+});
+
+/*
+  decryptShow parses the json response from the application and then renders
+  a decrypted version of the user's account number
+*/
+function decryptShow(response){
+  var msg = jQuery.parseJSON(JSON.stringify(response));
+
+  // Modern alert using Bootstrap modal-like appearance
+  var alertHtml = '<div class="alert alert-info alert-dismissible fade show" role="alert" style="position: fixed; top: 100px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 400px; box-shadow: 0 4px 16px rgba(0,0,0,0.2);">' +
+    '<div class="d-flex align-items-center">' +
+    '<i class="bi bi-unlock-fill me-3" style="font-size: 2rem;"></i>' +
+    '<div>' +
+    '<h5 class="alert-heading mb-1">Decrypted Account Number</h5>' +
+    '<p class="mb-0"><strong style="font-size: 1.2rem; font-family: monospace;">' + msg.account_num + '</strong></p>' +
+    '</div>' +
+    '</div>' +
+    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+    '</div>';
+
+  $('body').append(alertHtml);
+
+  // Auto-remove after 5 seconds
+  setTimeout(function() {
+    $('.alert').fadeOut(function() {
+      $(this).remove();
+    });
+  }, 5000);
+};
+
+/*
+  This function overrides the decrypt buttons (submit button's) native behavior,
+  allowing an ajax call to be made with the decrypt_form's inputs which is decrypted
+  server side with a JSON response containing the decrypted value. The decrypted value is
+  then passed to decryptShow();
+*/
+$("#decrypt_btn").click(function(event){
+  var valuesToSubmit = $("#decrypt_form").serialize();
+  event.preventDefault();
+  $.ajax({
+      url: <%= sanitize(decrypted_bank_acct_num_user_pay_index_path(:format => "json", user_id: current_user.id).inspect) %>,
+    data: valuesToSubmit,
+    type: "POST",
+    success: function(response) {
+    $('#success').show(500).delay(1500).fadeOut();
+    decryptShow(response);
+    $('#decrypt_form')[0].reset();
+    },
+    error: function(event) {
+    $('#failure').show(500).delay(1500).fadeOut();
+    }
+  });
+});
+
+/*
+  This function overrides the dd_form_btn's native behavior in order to submit an ajax request
+  that updates the user's direct deposit information. Upon success, the populateTable() function
+  is called in order to update the dataTable on the page to reflect the latest entry.
+*/
+$("#dd_form_btn").click(function(event) {
+     var valuesToSubmit = $("#bank_info_form").serialize();
+     event.preventDefault();
+     $.ajax({
+      url: <%= sanitize(update_dd_info_user_pay_index_path(:format => "json").inspect) %>,
+    data: valuesToSubmit,
+    type: "POST",
+    success: function(response) {
+    $('#success').show(500).delay(1500).fadeOut();
+    $('#bank_info_form')[0].reset();
+    populateTable();
+    },
+    error: function(event) {
+    $('#failure').show(500).delay(1500).fadeOut();
+    }
+  });
+ });
+
+$("#encrypted_acct_question").click(function(event) {
+  event.preventDefault();
+
+  // Create modern Bootstrap modal-like alert
+  var modalHtml = '<div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">' +
+    '<div class="modal-dialog modal-dialog-centered">' +
+    '<div class="modal-content">' +
+    '<div class="modal-header" style="background: linear-gradient(135deg, rgba(69, 123, 157, 0.1), rgba(29, 53, 87, 0.1)); border-left: 4px solid var(--rg-secondary);">' +
+    '<h5 class="modal-title"><i class="bi bi-shield-lock-fill text-primary me-2"></i>Why Are Account Numbers Encrypted?</h5>' +
+    '<button type="button" class="btn-close" onclick="$(this).closest(\'.modal\').remove();"></button>' +
+    '</div>' +
+    '<div class="modal-body">' +
+    '<p class="mb-3"><i class="bi bi-check-circle-fill text-success me-2"></i><strong>For your safety</strong>, your account number is stored encrypted in our database and presented to you in an encrypted form.</p>' +
+    '<p class="mb-0"><i class="bi bi-unlock-fill text-warning me-2"></i><strong>For your convenience</strong>, you can decrypt your bank account number at any time using our conveniently located decryption function.</p>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+    '<button type="button" class="btn btn-primary" onclick="$(this).closest(\'.modal\').remove();">Got It</button>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+
+  $('body').append(modalHtml);
+});
+
+/*
+  Make the sidebar element "Pay" active.
+*/
+function makeActive(){
+  $('li[id="pay"]').addClass('active');
+};
+
+/*
+  Initialize page - called on both ready and turbolinks:load
+*/
+function initializePage() {
+  makeActive();
+  createDataTable();
+  populateTable();
+}
+
+// Handle normal page loads
+$(document).ready(function() {
+  initializePage();
+});
+
+// Handle Turbolinks page loads
+$(document).on('turbolinks:load', function() {
+  initializePage();
+});
+
+</script>
+
+<style>
+  /* DataTables styling adjustments */
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 0.375rem 0.75rem;
+    margin: 0 0.125rem;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: var(--rg-dark);
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: var(--rg-primary);
+    color: white;
+    border-color: var(--rg-primary);
+  }
+
+  .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--rg-primary);
+    color: white;
+    border-color: var(--rg-primary);
+  }
+
+  .dataTables_filter input {
+    border-radius: 0.75rem;
+    border: 2px solid #e9ecef;
+    padding: 0.5rem 1rem;
+  }
+
+  .dataTables_filter input:focus {
+    border-color: var(--rg-primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.1);
+  }
+
+  .text-monospace {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+
+  /* Table hover effect */
+  #data_table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+
+  #data_table tbody tr:hover {
+    background-color: rgba(230, 57, 70, 0.03);
+  }
+
+  /* Override focus colors for specific forms */
+  #bank_info_form .form-control:focus {
+    border-color: var(--rg-success);
+    box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.1);
+  }
+
+  #decrypt_form .form-control:focus {
+    border-color: var(--rg-warning);
+    box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.1);
+  }
+</style>

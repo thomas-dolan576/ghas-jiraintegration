@@ -1,0 +1,115 @@
+<% if current_user %>
+  <!-- Authenticated Header -->
+  <header class="rg-header">
+    <div class="container-fluid h-100">
+      <div class="row h-100 align-items-center">
+        <div class="col-auto">
+          <a href="<%= home_dashboard_index_path %>" class="rg-brand">
+            <i class="bi bi-shield-fill-exclamation"></i> RailsGoat
+          </a>
+        </div>
+
+        <div class="col"></div>
+
+        <div class="col-auto">
+          <div class="d-flex align-items-center gap-3">
+            <!-- Font Size Controls -->
+            <div class="btn-group btn-group-sm" role="group" aria-label="Font size controls">
+              <a href="/dashboard/home?font=8pt" class="btn btn-outline-secondary" style="font-size: 10pt;" title="Small font" aria-label="Small font" data-turbolinks="false">
+                <i class="bi bi-type"></i>
+              </a>
+              <a href="/dashboard/home?font=200%25" class="btn btn-outline-secondary" style="font-size: 14pt;" title="Large font" aria-label="Large font" data-turbolinks="false">
+                <i class="bi bi-type"></i>
+              </a>
+            </div>
+
+            <!-- Tutorial Link -->
+            <%= button_to "https://github.com/OWASP/railsgoat/wiki", {
+              method: "get",
+              class: "btn btn-sm btn-outline-primary",
+              onclick: "window.open('https://github.com/OWASP/railsgoat/wiki', '_blank'); return false;"
+            } do %>
+              <i class="bi bi-book"></i> Tutorials
+            <% end %>
+
+            <!-- User Dropdown -->
+            <div class="dropdown">
+              <button class="btn btn-link text-decoration-none dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-person-fill text-white"></i>
+                </div>
+                <!--
+                VULNERABILITY: XSS via html_safe
+                I'm going to use HTML safe because we had some weird stuff
+                going on with funny chars and jquery, plus it says safe so I'm guessing
+                nothing bad will happen
+                -->
+                <span class="text-dark"><%= current_user.first_name.html_safe %></span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <%= link_to user_account_settings_path(user_id: current_user.id), class: "dropdown-item" do %>
+                    <i class="bi bi-gear"></i> Account Settings
+                  <% end %>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <%= link_to logout_path, class: "dropdown-item text-danger" do %>
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                  <% end %>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+<% else %>
+  <!-- Unauthenticated Header -->
+  <header class="rg-header">
+    <div class="container-fluid h-100">
+      <div class="row h-100 align-items-center">
+        <div class="col-auto">
+          <a href="<%= login_path %>" class="rg-brand">
+            <i class="bi bi-shield-fill-exclamation"></i> RailsGoat
+          </a>
+        </div>
+
+        <div class="col"></div>
+
+        <div class="col-auto">
+          <div class="d-flex align-items-center gap-2">
+            <%= link_to credentials_tutorials_path, class: "btn btn-sm btn-warning" do %>
+              <i class="bi bi-key"></i> Demo Credentials
+            <% end %>
+
+            <%= button_to "https://github.com/OWASP/railsgoat/wiki", {
+              method: "get",
+              class: "btn btn-sm btn-outline-primary",
+              onclick: "window.open('https://github.com/OWASP/railsgoat/wiki', '_blank'); return false;"
+            } do %>
+              <i class="bi bi-book"></i> Tutorials
+            <% end %>
+
+            <%= button_to signup_path, {
+              class: "btn btn-sm btn-primary",
+              method: "get"
+            } do %>
+              <i class="bi bi-person-plus"></i> Sign Up
+            <% end %>
+
+            <%= button_to login_path, {
+              class: "btn btn-sm btn-outline-primary",
+              method: "get"
+            } do %>
+              <i class="bi bi-box-arrow-in-right"></i> Login
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+<% end %>

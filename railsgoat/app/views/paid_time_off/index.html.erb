@@ -1,0 +1,297 @@
+<div class="container-fluid">
+  <!-- Alert Messages -->
+  <div class="row">
+    <div class="col-12">
+      <div id="success" style="display: none;" class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
+          <div>
+            <h5 class="alert-heading mb-1">Success!</h5>
+            <p class="mb-0">Information successfully updated.</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+
+      <div id="failure" style="display: none;" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem;"></i>
+          <div>
+            <h5 class="alert-heading mb-1">Error!</h5>
+            <p class="mb-0">Failed to update. Please try again.</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar and Schedule Form Row -->
+  <div class="row g-3">
+    <!-- PTO Calendar -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">
+            <i class="bi bi-calendar3 text-primary"></i> PTO Calendar
+          </h4>
+        </div>
+        <div id="calendarDiv" class="card-body">
+          <div id='calendar'></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule PTO Form -->
+    <div class="col-lg-6">
+      <div class="card shadow-sm" style="border-left: 4px solid var(--rg-primary);">
+        <div class="card-header py-3" style="background: linear-gradient(135deg, rgba(230, 57, 70, 0.05), rgba(214, 40, 40, 0.05));">
+          <h4 class="mb-0">
+            <i class="bi bi-calendar-plus text-primary"></i> Schedule PTO
+          </h4>
+          <p class="text-muted mb-0 small mt-1">Plan your time away from work</p>
+        </div>
+        <div id="scheduleDiv" class="card-body p-4">
+          <%= form_for @schedule, url: "#", html: { id: "cal_update" } do |s| %>
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-tag-fill text-primary me-2"></i>Event Name
+              </label>
+              <%= s.text_field :event_name, {
+                placeholder: "e.g., Summer Vacation, Personal Day",
+                class: "form-control form-control-lg"
+              } %>
+            </div>
+
+            <%= s.text_field :event_type, type: "hidden", value: "pto" %>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold">
+                <i class="bi bi-chat-left-text-fill text-primary me-2"></i>Event Description
+              </label>
+              <%= s.text_field :event_desc, {
+                placeholder: "e.g., Family trip to Hawaii, Medical appointment",
+                class: "form-control form-control-lg"
+              } %>
+              <small class="text-muted">Optional: Add details about your time off</small>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-semibold" for="date_range1">
+                <i class="bi bi-calendar-event-fill text-primary me-2"></i>Event Dates
+              </label>
+              <div class="input-group input-group-lg">
+                <span class="input-group-text bg-white">
+                  <i class="bi bi-calendar-range text-primary"></i>
+                </span>
+                <input type="text" name="date_range1" id="date_range1" class="form-control date_picker" placeholder="Click to select date range"/>
+              </div>
+              <small class="text-muted">Choose the start and end dates for your PTO</small>
+            </div>
+
+            <div class="d-grid">
+              <%= s.submit "Schedule PTO", {
+                id: 'cal_update_submit',
+                class: "btn btn-primary btn-lg"
+              } %>
+            </div>
+
+            <div class="mt-3 p-3 rounded" style="background: var(--rg-light); border-left: 3px solid var(--rg-success);">
+              <small class="text-muted">
+                <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                <strong>Tip:</strong> Your PTO request will appear on the calendar after submission
+              </small>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sick Days Stats -->
+  <div class="row mt-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">
+            <i class="bi bi-bandaid text-primary"></i> Sick Days
+          </h4>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #579da9;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Earned</div>
+                  <h3 class="mb-0" style="color: #579da9;"><%= @pto.sick_days_earned %></h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #e26666;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Taken</div>
+                  <h3 class="mb-0" style="color: #e26666;"><%= @pto.sick_days_taken %></h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #1e825e;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Remaining</div>
+                  <h3 class="mb-0" style="color: #1e825e;"><%= @pto.sick_days_remaining %></h3>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center text-muted mt-3 small">
+            <i class="bi bi-info-circle"></i> As of today: <%= Date.today.strftime("%B %d, %Y") %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PTO Stats -->
+  <div class="row mt-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white py-3">
+          <h4 class="mb-0">
+            <i class="bi bi-umbrella-fill text-primary"></i> Paid Time Off
+          </h4>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #579da9;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Earned</div>
+                  <h3 class="mb-0" style="color: #579da9;"><%= @pto.pto_earned %></h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #e26666;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Taken</div>
+                  <h3 class="mb-0" style="color: #e26666;"><%= @pto.pto_taken %></h3>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card text-center" style="border-left: 4px solid #1e825e;">
+                <div class="card-body">
+                  <div class="text-muted small mb-1">Days Remaining</div>
+                  <h3 class="mb-0" style="color: #1e825e;"><%= @pto.pto_days_remaining %></h3>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="text-center text-muted mt-3 small">
+            <i class="bi bi-info-circle"></i> As of today: <%= Date.today.strftime("%B %d, %Y") %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+function makeActive() {
+  $('li[id="pto"]').addClass('active');
+}
+
+$(document).ready(function() {
+  makeActive();
+
+  // Initialize FullCalendar
+  $('#calendar').fullCalendar({
+    events: <%= get_pto_schedule_schedule_index_path(:format => "json").inspect.html_safe %>,
+    height: 'auto',
+    contentHeight: 'auto',
+    aspectRatio: 1.5
+  });
+
+  // Initialize date range picker
+  $('.date_picker').daterangepicker({
+    opens: 'right',
+    locale: {
+      format: 'MM/DD/YYYY'
+    }
+  });
+});
+
+// Handle Turbolinks page loads
+$(document).on('turbolinks:load', function() {
+  makeActive();
+});
+
+// Form submission
+$("#cal_update_submit").click(function(event) {
+  event.preventDefault();
+  var valuesToSubmit = $("#cal_update").serialize();
+
+  $.ajax({
+    url: "/schedule.json",
+    data: valuesToSubmit,
+    type: "POST",
+    success: function(response) {
+      if (response.msg == "failure") {
+        $('#failure').show(500).delay(1500).fadeOut();
+      } else {
+        $('#success').show(500).delay(1500).fadeOut();
+        $('#calendar').fullCalendar('refetchEvents');
+        // Clear form
+        $('#cal_update')[0].reset();
+      }
+    },
+    error: function(event) {
+      $('#failure').show(500).delay(1500).fadeOut();
+    }
+  });
+});
+</script>
+
+<style>
+  /* FullCalendar modern styling */
+  #calendar {
+    border-radius: 0.5rem;
+  }
+
+  .fc-toolbar {
+    background: var(--rg-light);
+    padding: 1rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+  }
+
+  .fc-button {
+    background: var(--rg-primary) !important;
+    border-color: var(--rg-primary) !important;
+    border-radius: 0.5rem !important;
+    text-transform: none !important;
+    padding: 0.375rem 0.75rem !important;
+  }
+
+  .fc-button:hover {
+    background: var(--rg-primary-dark) !important;
+    border-color: var(--rg-primary-dark) !important;
+  }
+
+  .fc-day-header {
+    background: var(--rg-light);
+    padding: 0.75rem;
+    font-weight: 600;
+  }
+
+  .fc-event {
+    background: var(--rg-primary);
+    border-color: var(--rg-primary);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .fc-today {
+    background: rgba(230, 57, 70, 0.05) !important;
+  }
+</style>
