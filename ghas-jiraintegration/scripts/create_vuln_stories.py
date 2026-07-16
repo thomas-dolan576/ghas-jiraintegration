@@ -284,12 +284,14 @@ def slack_notify(issue_key, alert, repo):
 
 def write_summary(rows):
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if rows:
+        body = ["| Repo | Severity | Rule | Result |", "| --- | --- | --- | --- |", *rows]
+    else:
+        body = ["_No alerts processed (code scanning unavailable or no open alerts)._"]
     lines = [
         f"## Vuln → Jira Story {'(DRY RUN)' if DRY_RUN else ''}",
         "",
-        "| Repo | Severity | Rule | Result |",
-        "| --- | --- | --- | --- |",
-        *rows,
+        *body,
         "",
         f"_Run at {datetime.now(timezone.utc).isoformat()}_",
     ]
