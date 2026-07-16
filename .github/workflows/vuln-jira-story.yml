@@ -40,6 +40,7 @@ concurrency:
 jobs:
   create-story:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Manual runs always allowed; workflow_run only when CodeQL succeeded
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
@@ -82,3 +83,4 @@ jobs:
           name: jira-payloads-${{ github.run_id }}
           path: jira-payloads/
           if-no-files-found: ignore
+          retention-days: 14

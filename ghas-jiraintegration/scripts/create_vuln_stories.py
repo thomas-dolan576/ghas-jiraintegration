@@ -270,13 +270,17 @@ def slack_notify(issue_key, alert, repo):
     if DRY_RUN:
         print(f"[dry-run] Slack message:\n{json.dumps(message, indent=2)}")
         return
-    req = urllib.request.Request(
-        SLACK_WEBHOOK_URL,
-        data=json.dumps(message).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    urllib.request.urlopen(req, timeout=15)
-    print(f"Slack notification sent for {issue_key}.")
+    # Never let a Slack failure fail the run — the Jira story already exists.
+    try:
+        req = urllib.request.Request(
+            SLACK_WEBHOOK_URL,
+            data=json.dumps(message).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(req, timeout=15)
+        print(f"Slack notification sent for {issue_key}.")
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::Slack notification failed for {issue_key}: {e}")
 
 
 # -------------------------------------------------------------------------- summary
