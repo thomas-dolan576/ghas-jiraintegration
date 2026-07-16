@@ -1,0 +1,42 @@
+[
+  {
+    "repository": { "full_name": "snapsheet/payments-service" },
+    "alert": {
+      "number": 42,
+      "html_url": "https://github.com/snapsheet/payments-service/security/code-scanning/42",
+      "state": "open",
+      "rule": {
+        "id": "py/sql-injection",
+        "name": "SQL query built from user-controlled sources",
+        "severity": "error",
+        "security_severity_level": "critical",
+        "description": "Building a SQL query from user-controlled sources is vulnerable to insertion of malicious SQL code."
+      },
+      "tool": { "name": "CodeQL", "version": "2.17.0" },
+      "most_recent_instance": {
+        "ref": "refs/heads/main",
+        "location": { "path": "app/db/queries.py", "start_line": 118 }
+      }
+    }
+  },
+  {
+    "repository": { "full_name": "snapsheet/claims-portal" },
+    "alert": {
+      "number": 7,
+      "html_url": "https://github.com/snapsheet/claims-portal/security/code-scanning/7",
+      "state": "open",
+      "rule": {
+        "id": "js/xss",
+        "name": "Client-side cross-site scripting",
+        "severity": "warning",
+        "security_severity_level": "high",
+        "description": "Writing user input directly to the DOM allows for a cross-site scripting vulnerability."
+      },
+      "tool": { "name": "CodeQL", "version": "2.17.0" },
+      "most_recent_instance": {
+        "ref": "refs/heads/main",
+        "location": { "path": "src/components/ClaimNotes.jsx", "start_line": 54 }
+      }
+    }
+  }
+]

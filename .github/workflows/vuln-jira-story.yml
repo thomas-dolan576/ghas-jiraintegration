@@ -1,0 +1,67 @@
+name: "Vuln → Jira Story (VULN)"
+
+# Fires when a code scanning (CodeQL) alert lands on the default branch —
+# i.e. a vulnerability was merged into production code.
+# Also supports manual runs against a fixture for testing before the
+# Jira service account exists.
+on:
+  code_scanning_alert:
+    types: [created, reopened, appeared_in_branch]
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: "Path to alert fixture JSON (test mode)"
+        required: false
+        default: "ghas-jiraintegration/fixtures/sample_alerts.json"
+      dry_run:
+        description: "true = log Jira payload only, don't create issues"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+  security-events: read
+
+concurrency:
+  group: vuln-jira-${{ github.event.alert.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  create-story:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create Jira story (stdlib only, no pip installs)
+        env:
+          # DRY_RUN precedence: manual input > repo variable > default true.
+          # Flip vars.JIRA_DRY_RUN to "false" at go-live. No code change needed.
+          DRY_RUN: ${{ inputs.dry_run || vars.JIRA_DRY_RUN || 'true' }}
+
+          # Credentials: use your personal Atlassian API token now;
+          # swap these two secrets to the service account later.
+          JIRA_BASE_URL: ${{ vars.JIRA_BASE_URL || 'https://snapsheettech.atlassian.net' }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+          JIRA_PROJECT_KEY: ${{ vars.JIRA_PROJECT_KEY || 'VULN' }}
+          # 17745 = "Story" issue type in the VULN team-managed project
+          JIRA_ISSUE_TYPE_ID: ${{ vars.JIRA_ISSUE_TYPE_ID || '17745' }}
+
+          # Optional — Slack incoming webhook; step is a no-op without it
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+          ALERT_FIXTURE: ${{ inputs.fixture }}
+        run: python ghas-jiraintegration/scripts/create_vuln_stories.py
+
+      - name: Upload payload artifact (dry-run evidence)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jira-payloads-${{ github.run_id }}
+          path: jira-payloads/
+          if-no-files-found: ignore
